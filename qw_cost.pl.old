@@ -1,0 +1,81 @@
+%activity_cost(retr_a,cost(2,2,1)):-!.
+%activity_cost(retr_b,cost(1,2,2)):-!.
+%activity_cost(corr_ab,cost(2,2,2)):-!.
+%activity_cost(_,cost(1,1,1)):-!.
+
+qw_cost(QW,C):- qw_cost(in,QW,C,1).
+
+qw_cost(out,_,cost(0,0,0),_):- !.
+qw_cost(IN,QW,C,N):-
+	IN=in,!,
+%	nl,write(N),writeN(N),write('[in '),write(QW),
+	extract(arc(IN,_),QW,Next_to_in),
+	length(Next_to_in,1),!,
+	Next_to_in=[Next],
+	Next=arc(_,A),
+	difference(QW,[Next],QW_no_in),
+	N2 is N+1,
+ 	qw_cost(A,QW_no_in,C,N2)
+%	,nl,write(N),writeN(N),write('] COST: '),write(C)
+	.
+
+qw_cost(PAR,QW,C,N):- %sequential arc(Prev,out)
+	atom_concat(par,Suffix,PAR),!,
+	atom_concat(end_par,Suffix,ENDPAR),
+%	nl,write(N),writeN(N),write('[par '),write(QW),
+	findall([arc(in,F),arc(L,out)|SubQW],(   member(arc(PAR,F),QW),
+                                                 member(arc(L,ENDPAR),QW),
+                                                 paths(F,L,QW,Paths),
+					         ((F=L,Paths=[]);(F\==L,Paths\==[])),
+                                                 unionAll(Paths,SubQW)
+					      )
+                ,SubQWs),
+	N2 is N +1,
+	qw_cost(SubQWs,CPar,N2),
+	aggpar(CPar,Caggpar),
+
+	next(ENDPAR,QW,Next),
+	qw_cost(Next,QW,Cseq,N),
+	aggseq(Caggpar,Cseq,C)
+%	,nl,write(N),writeN(N),write('] COST: '),write(C)
+	.
+	
+
+qw_cost(Activity,QW,C,N):- %sequential arc(Prev,Next), Prev != in , Next != out
+%	nl,write(N),writeN(N),write('['),write(Activity),write(' '),write(QW),
+	%next(Activity,QW,Next),
+	Arc=arc(Activity,Next),
+	memberchk(Arc,QW),
+	difference(QW,[Arc],NewQW),
+	qw_cost(Next,NewQW,C2,N),
+	activity_cost(Activity,CActivity),
+	aggseq(C2,CActivity,C)
+%	,nl,write(N),writeN(N),write(''),write(''),write('] COST: '),write(C)
+	.
+
+qw_cost([],[],_):-!.
+qw_cost([SubQW|Tail],[C|CTail],N):-
+	qw_cost(in,SubQW,C,N),
+	qw_cost(Tail,CTail,N).
+
+aggpar(List,cost(CTime,CPrice,CEnergy)):-
+	listcost(List,ListTime,ListPrice,ListEnergy),
+	max_list(ListTime,CTime),
+	sum_list(ListPrice,CPrice),
+	sum_list(ListEnergy,CEnergy).
+
+
+aggseq(cost(T1,P1,E1),cost(T2,P2,E2),cost(TR,PR,ER)):-
+	TR is T1+T2,
+	PR is P1+P2,
+	ER is E1+E2.
+
+listcost([],[],[],[]):-!.
+listcost([cost(HTime,HPrice,HEnergy)|Tail],[HTime|TailTime],[HPrice|TailPrice],[HEnergy|TailEnergy]):-
+	listcost(Tail,TailTime,TailPrice,TailEnergy).
+
+
+next(IN,[arc(IN,Next)|_],Next):-!.
+next(IN,[_|Tail],Next):-!,
+	next(IN,Tail,Next).
+

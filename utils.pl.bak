@@ -1,0 +1,151 @@
+
+in_left(V_right,Vertex,[E|Tail]):-
+        member(V_left,Vertex),
+        E=arc(V_left,V_right),
+        difference(Vertex,[V_left],Vertex2),
+        in_left(V_right,Vertex2,Tail),!.
+in_left(_,[],[]).
+
+in_right(V_left,Vertex,[E|Tail]):-
+        member(V_right,Vertex),
+        E=arc(V_left,V_right),
+        difference(Vertex,[V_right],Vertex2),
+        in_right(V_left,Vertex2,Tail),!.
+in_right(_,[],[]).
+
+replace_right(V_old_right,Edges,V_new_right,[E|Tail]):-
+	member(E,Edges),
+	E=arc(_,V_right),
+	\+ V_right=V_old_right,
+	difference(Edges,[E],Edges2),
+	replace_right(V_old_right,Edges2,V_new_right,Tail),!.
+
+replace_right(V_old_right,Edges,V_new_right,[arc(V_left,V_new_right)|Tail]):-
+	member(E_old,Edges),
+	E_old=arc(V_left,V_old_right),
+	difference(Edges,[E_old],Edges2),
+	replace_right(V_old_right,Edges2,V_new_right,Tail),!.
+replace_right(_,[],_,[]).
+
+replace_left(V_old_left,Edges,V_new_left,[E|Tail]):-
+	member(E,Edges),
+	E=arc(V_left,_),
+	\+ V_left=V_old_left,
+	difference(Edges,[E],Edges2),
+	replace_left(V_old_left,Edges2,V_new_left,Tail),!.
+
+replace_left(V_old_left,Edges,V_new_left,[arc(V_new_left,V_right)|Tail]):-
+	member(E_old,Edges),
+	E_old=arc(V_old_left,V_right),
+	difference(Edges,[E_old],Edges2),
+	replace_left(V_old_left,Edges2,V_new_left,Tail),!.
+replace_left(_,[],_,[]).
+
+
+subset([X|R],S) :- member(X,S), subset(R,S).
+subset([],_).
+
+difference([], _, []) :- !.
+difference([A|C], B, D) :-
+        member(A, B), !,
+        difference(C, B, D).
+difference([A|B], C, [A|D]) :-
+        difference(B, C, D).
+
+union([X|Y],Z,W) :- member(X,Z),  union(Y,Z,W).
+union([X|Y],Z,[X|W]) :- \+ member(X,Z), union(Y,Z,W).
+union([],Z,Z).
+
+intersection([X|Y],M,[X|Z]) :- member(X,M), intersection(Y,M,Z).
+intersection([X|Y],M,Z) :- \+ member(X,M), intersection(Y,M,Z).
+intersection([],_,[]).
+
+
+
+replace(_,_,[],[]):-!.
+replace(arc(X,A),arc(Y,A),[arc(X,A_)|Tail],[arc(Y,A_)|TailR]):-
+	var(A),!,
+	replace(arc(X,A),arc(Y,A),Tail,TailR).
+
+replace(arc(X,A),arc(Y,A),[arc(Z,B)|Tail],[arc(Z,B)|TailR]):-
+	var(A),
+	X\==Z,!,
+	replace(arc(X,A),arc(Y,A),Tail,TailR).
+
+replace(arc(X,A),arc(Y,A),[arc(X,A)|Tail],[arc(Y,A)|TailR]):-
+	nonvar(A),!,
+	replace(arc(X,A),arc(Y,A),Tail,TailR).
+
+replace(arc(X,A),arc(Y,A),[arc(Z,B)|Tail],[arc(Z,B)|TailR]):-
+	nonvar(A),
+	A\==B,!,
+	replace(arc(X,A),arc(Y,A),Tail,TailR).
+
+replace(arc(A,X),arc(A,Y),[arc(A_,X)|Tail],[arc(A_,Y)|TailR]):-
+	var(A),!,
+	replace(arc(A,X),arc(A,Y),Tail,TailR).
+
+replace(arc(A,X),arc(A,Y),[arc(B,Z)|Tail],[arc(B,Z)|TailR]):-
+	var(A),
+	X\==Z,!,
+	replace(arc(A,X),arc(A,Y),Tail,TailR).
+
+replace(arc(A,X),arc(A,Y),[arc(A,X)|Tail],[arc(A,Y)|TailR]):-
+	nonvar(A),!,
+	replace(arc(A,X),arc(A,Y),Tail,TailR).
+
+replace(arc(A,X),arc(A,Y),[arc(B,Z)|Tail],[arc(B,Z)|TailR]):-
+	nonvar(A),
+	A\==B,!,
+	replace(arc(A,X),arc(A,Y),Tail,TailR).
+
+replace(arc(A,X),arc(B,Y),[arc(A,X)|Tail],[arc(B,Y)|TailR]):-!,
+	replace(arc(A,X),arc(B,Y),Tail,TailR).
+
+replace(arc(A,X),arc(B,Y),[arc(A_,X_)|Tail],[arc(A_,X_)|TailR]):-
+	(A\==A_; X\==X_),!,
+	replace(arc(A,X),arc(B,Y),Tail,TailR).
+	
+	
+
+extract(_,[],[]):-!.
+extract(arc(A,B),[arc(A_,X)|Tail],[arc(A_,X)|TailR]):-
+	nonvar(A),
+	var(B),
+	A=A_,!,
+	extract(arc(A,B),Tail,TailR).
+extract(arc(A,B),[arc(X,B_)|Tail],[arc(X,B_)|TailR]):-
+	var(A),
+	nonvar(B),
+	B=B_,!,
+	extract(arc(A,B),Tail,TailR).
+
+extract(arc(A,B),[arc(A_,B_)|Tail],[arc(A_,B_)|TailR]):-
+	nonvar(A),
+	nonvar(B),
+	A=A_,
+	B=B_,!,
+	extract(arc(A,B),Tail,TailR).
+
+extract(arc(A,B),[arc(A_,B_)|Tail],[arc(A_,B_)|TailR]):-
+	var(A),
+	var(B),!,
+	extract(arc(A,B),Tail,TailR).
+
+extract(arc(A,B),[_|Tail],TailR):-
+	extract(arc(A,B),Tail,TailR).
+	
+
+paths(A,B,QW,[Path|Tail]):-
+	path(A,B,QW,Path).
+paths(_,_,_,[]).
+
+path(A,Z,[arc(A,Z)],[arc(A,Z)],QW).
+path(A,Z,[arc(A,Z)|_],[arc(A,Z)],QW).
+path(A,Z,[arc(A,B)|Tail],[arc(A,B)|PathTail],QW):-
+	path(B,Z,Tail,PathTail,QW).
+path(A,Z,[arc(A,B)|Tail],[arc(A,B)|PathTail],QW):-
+	path(B,Z,QW,PathTail,QW).
+path(A,Z,[arc(A_,Z_)|Tail],PathTail,QW):-
+	path(A,Z,Tail,PathTail,QW).
+	
