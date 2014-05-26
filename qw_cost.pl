@@ -3,6 +3,7 @@
 %activity_cost(corr_ab,cost(2,2,2)):-!.
 %activity_cost(_,cost(1,1,1)):-!.
 
+
 qw_cost(QW,Cost):-
 	retractall(ancestors(_,_)),
 	retractall(successors(_,_)),
@@ -22,14 +23,14 @@ qw_cost(out,_,cost(0,0,0),_):- !.
 qw_cost(IN,QW,Cost,N):-
 	IN=in,!,
 %	nl,write(N),writeN(N),write('[in '),write(QW),
-	QW=qw(A,P,C,V,E,_),
+	QW=qw(A,P,V,E,in,out,_),
 	extract(arc(IN,_),E,Next_to_in),
 	length(Next_to_in,1),!,
 	Next_to_in=[Next],
 	Next=arc(_,Activity),
 	difference(E,[Next],E_no_in),
 	N2 is N+1,
- 	qw_cost(Activity,qw(A,P,C,V,E_no_in,_),Cost,N2)
+ 	qw_cost(Activity,qw(A,P,V,E_no_in,in,out,_),Cost,N2)
 %	,nl,write(N),writeN(N),write('] COST: '),write(C)
 	.
 
@@ -37,7 +38,7 @@ qw_cost(PAR,QW,Cost,N):- %sequential arc(Prev,out)
 	atom_concat(par,Suffix,PAR),!,
 	atom_concat(end_par,Suffix,ENDPAR),
 %	nl,write(N),writeN(N),write('[par '),write(QW),
-	QW=qw(A,P,C,V,E,_),
+	QW=qw(A,P,V,E,in,out,_),
 	findall([arc(in,F),arc(L,out)|SubE],(   member(arc(PAR,F),E),
                                                  member(arc(L,ENDPAR),E),
                                                  paths(F,L,E,Paths),
@@ -46,12 +47,12 @@ qw_cost(PAR,QW,Cost,N):- %sequential arc(Prev,out)
 					      )
                 ,SubEs),
 	N2 is N +1,
-	findall(qw(A,P,C,V,SubE,_),member(SubE,SubEs),SubQWs),
+	findall(qw(A,P,V,SubE,in,out,_),member(SubE,SubEs),SubQWs),
 	qw_cost(SubQWs,CPar,N2),
 	aggpar(CPar,Caggpar),
 
 	next(ENDPAR,E,Next),
-	qw_cost(Next,qw(A,P,C,V,E,_),Cseq,N),
+	qw_cost(Next,qw(A,P,V,E,in,out,_),Cseq,N),
 	aggseq(Caggpar,Cseq,Cost)
 %	,nl,write(N),writeN(N),write('] COST: '),write(C)
 	.
@@ -60,11 +61,11 @@ qw_cost(PAR,QW,Cost,N):- %sequential arc(Prev,out)
 qw_cost(Activity,QW,Cost,N):- %sequential arc(Prev,Next), Prev != in , Next != out
 %	nl,write(N),writeN(N),write('['),write(Activity),write(' '),write(QW),
 	%next(Activity,QW,Next),
-	QW=qw(A,P,C,V,E,_),
+	QW=qw(A,P,V,E,in,out,_),
 	Arc=arc(Activity,Next),
 	memberchk(Arc,E),
 	difference(E,[Arc],NewE),
-	qw_cost(Next,qw(A,P,C,V,NewE,_),Cost2,N),
+	qw_cost(Next,qw(A,P,V,NewE,in,out,_),Cost2,N),
 	activity_cost(Activity,CActivity),
 	aggseq(Cost2,CActivity,Cost)
 %	,nl,write(N),writeN(N),write(''),write(''),write('] COST: '),write(C)
