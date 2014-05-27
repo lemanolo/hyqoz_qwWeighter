@@ -4,9 +4,8 @@ assert_activty_ansestors(qw(A,_,_,E,in,out,_)):-
                   assertz(activity_ancestor(Ancestor,Successor))),_).
 
 prec_activity(Ancestor,Succesor,qw(A,_,_,E,in,out,_)):-
-	unionAll([A],Vertices),
-	member(Ancestor,Vertices),
-	member(Succesor,Vertices),
+	member(Ancestor,A),
+	member(Succesor,A),
 	epaths(Ancestor,Succesor,E,_).
 	%paths(Ancestor,Succesor,E,Paths),
 	%Paths\==[].

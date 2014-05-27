@@ -52,7 +52,7 @@ downlink_cost(Activity,0,P,E):- link_cost(Activity,_,P,E). %   In the case of th
 		   			 % activity contains it
 
 %uplink_cost(Activity,(T/Succ_a),P,E):- successors(Activity,Successors),length(Successors,Succ_a),link_cost(Activity,T,P,E).
-uplink_cost(Activity,T,P,E):- successors(Activity,Successors),length(Successors,Succ_a),link_cost(Activity,T,P,E).
+uplink_cost(Activity,T,P,E):- link_cost(Activity,T,P,E).
 
 link_cost(Activity,T,P,E):-
 	T=(L_n+(1/T_n)),

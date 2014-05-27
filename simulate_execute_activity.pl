@@ -67,23 +67,30 @@ execute_activity(DTF):-
        DTF=..[dtf|[A,_,_,IDActivity]],
 
        findall(Ancestor,activity_ancestor(Ancestor,IDActivity),Ancestors),
-       findall(AncestorDelivery,(member(Ancestor,Ancestors), activity_deliver(Ancestor,AncestorDelivery)),AllAncestorDelivery),
+       findall(AncestorDelivery,(member(Ancestor,Ancestors),
+                                 clause(activity_deliver(Ancestor,AncestorDelivery),true))
+              ,AllAncestorDelivery),
        unionAll(AllAncestorDelivery,ActivityINPUT),
-       nl,nl,write(' INCOMING DATA: '),write(ActivityINPUT),
 
-       findall(DSCardinalities,(member(Alias,A),
+       nl,write('      ACTIVITY: '),write(IDActivity),
+       compute_data_size(ActivityINPUT,InputDataSize),
+       nl,write('\t\tINCOMING DATA: '),write(ActivityINPUT),write('\t\t InputDataSize: '),write(InputDataSize),
+
+       findall(_,(member(Alias,A),
                                 compute_runtime_api(Alias,DTF,RTAPI),
                                 update_runtime_api(Alias,RTAPI),
-                                compute_runtime_profile(Alias,DTF,DSCardinalities))
-               ,AllDSCardinalities),
-
-       unionAll(AllDSCardinalities,UnionAllDSCardinalities),
-       findall(_,(member(Alias=DSCardinality,UnionAllDSCardinalities),
-                  update_runtime_profile(Alias, DSCardinality))
+                                compute_runtime_profile(Alias,DTF))
                ,_),
 
+%       unionAll(AllDSCardinalities,UnionAllDSCardinalities),
+%       findall(_, ( member(Alias=DSCardinality,UnionAllDSCardinalities)
+%                  %,update_runtime_profile(Alias, DSCardinality)
+%                  )
+%               ,_),
+
        unionAll([A,ActivityINPUT],ActivityOUTPUT),
-       nl,write(' OUTGOING DATA: '),write(ActivityOUTPUT),nl,
+       compute_data_size(ActivityOUTPUT,OutputDataSize),
+       nl,write('\t\tOUTGOING DATA: '),write(ActivityOUTPUT),write('\t\t OutputDataSize: '),write(OutputDataSize),nl,
        retractall(activity_deliver(IDActivity,_)),
        assertz(activity_deliver(IDActivity,ActivityOUTPUT)).
 

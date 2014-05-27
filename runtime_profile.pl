@@ -99,7 +99,8 @@ build_runtime_profile:- retractall(ds_cardinality(_,_)),
                         retractall(att_size(_,_,_)),
                         findall(_,(type_name(Alias,S::M),
                                    initial_cardinality(S::M,InitialCardinality),
-                                   assertz(ds_cardinality(Alias,InitialCardinality))),
+                                   dataset(Alias,Dataset),
+                                   assertz(ds_cardinality(Dataset,InitialCardinality))),
                                 _),
                         findall(_,(type_name(Alias,S::M),
                                    runtime_atts(Alias,Atts),
@@ -113,71 +114,78 @@ build_runtime_profile:- retractall(ds_cardinality(_,_)),
                                   ),
                                 _).
 
-compute_runtime_profile(Alias,DTF,DSCardinalities):- DTF=..[dtf|[_,[Exp],_,_]],
-                                                   (
-                                                      Exp=..[_,Alias::Path,_] -> true ; Exp=..[_,_,Alias::Path]
-                                                   ),!,
-                                                   ds_cardinality(Alias,INCARD),
-                                                   %nl,write('------ds_cardinality('),write(Alias),write(','),write(INCARD),write(')'),
-                                                   (
-                                                      rexp(Exp,Alias) ->  att_selectivity(Alias,Path,Selectivity),
-                                                                          %nl,write('------DSCardinality is '),write(Selectivity),write(' * '),write(INCARD),
-                                                                          DSCardinality is INCARD * Selectivity,
-                                                                          DSCardinalities=[Alias=DSCardinality]
+compute_runtime_profile(Alias,DTF):- DTF=..[dtf|[_,[Exp],_,_]],
+                                     (
+                                        Exp=..[_,Alias::Path,_] %-> true ; Exp=..[_,_,Alias::Path]
+                                     ),!,
+                                     dataset(Alias,Dataset),
+                                     ds_cardinality(Dataset,INCARD),
+                                     %nl,write('------ds_cardinality('),write(Alias),write(','),write(INCARD),write(')'),
+                                     (
+                                        (  rexp(Exp,Alias) ->  att_selectivity(Alias,Path,Selectivity)
+                                         ; fexp(Exp,Alias) ->  att_selectivity(Alias,Path,Selectivity)
+                                        ),
+                                          DSCardinality is INCARD * Selectivity,
+                                          retract(ds_cardinality(Dataset,_)),
+                                          assertz(ds_cardinality(Dataset,DSCardinality))
+                                          %,DSCardinalities=[Alias=DSCardinality]
 
-                                                    ; fexp(Exp,Alias) ->  att_selectivity(Alias,Path,Selectivity),
-                                                                          %nl,write('------DSCardinality is '),write(Selectivity),write(' * '),write(INCARD),
-                                                                          DSCardinality is INCARD * Selectivity,
-                                                                          DSCardinalities=[Alias=DSCardinality]
+                                      ; (  bexp(Exp,Alias::Path,  Alias2::Path2) -> true
+                                         ; bexp(Exp,Alias2::Path2,Alias::Path)   -> true
+                                         ; cexp(Exp,Alias::Path,  Alias2::Path2) -> true
+                                         ; cexp(Exp,Alias2::Path2,Alias::Path)   -> true
+                                        ),
+                                           dataset(Alias2,Dataset2),
+                                           ds_cardinality(Dataset2,INCARD2),
+                                           join_selectivity(Alias,Path,Alias2,Path2,Selectivity),
+                                           %nl,write('------DSCardinality is '),write(Selectivity),write(' * '),write(INCARD),write(' * '),write(INCARD2),
+                                           DSCardinality is Selectivity * INCARD * INCARD2,
+                                           findall(DS,(dataset(Alias,DS);dataset(Alias2,DS)),AllDatasets),
+                                           sort(AllDatasets),
+                                           concat_all_atoms(AllDatasets,NewDataset),
+                                           findall(_,(member(DS,AllDatasets),
+                                                      dataset(OtherAlias,DS),
+                                                      retract(dataset(OtherAlias,DS)),
+                                                      assertz(dataset(OtherAlias,NewDataset)),
+                                                      retract(ds_cardinality(DS,_))
+                                                      )
+                                                  ,_),
+                                           assertz(ds_cardinality(NewDataset,DSCardinality))
+                                           %,DSCardinalities=[Alias=DSCardinality, Alias2=DSCardinality]
+                                     ) ,!.
 
-                                                    ; (bexp(Exp,Alias::Path,Alias2::Path2) ->true ; bexp(Exp,Alias2::Path2,Alias::Path) -> true),
-                                                         ds_cardinality(Alias2,INCARD2),
-                                                         join_selectivity(Alias,Path,Alias2,Path2,Selectivity),
-                                                         %nl,write('------DSCardinality is '),write(Selectivity),write(' * '),write(INCARD),write(' * '),write(INCARD2),
-                                                         DSCardinality is Selectivity * INCARD * INCARD2,
-                                                         DSCardinalities=[Alias=DSCardinality,Alias2=DSCardinality]
+compute_runtime_profile(_,DTF):- DTF=..[dtf|[_,[],_,_]],!.
+%                                    dataset(Alias,Dataset),
+%                                    ds_cardinality(Dataset,INCARD),
+%                                    DSCardinality is INCARD,!.
 
-                                                    ; (cexp(Exp,Alias::Path,Alias2::Path2) ->true ; cexp(Exp,Alias2::Path2,Alias::Path) -> true),
-                                                         ds_cardinality(Alias2,INCARD2),
-                                                         join_selectivity(Alias,Path,Alias2,Path2,Selectivity),
-                                                         %nl,write('------DSCardinality is '),write(Selectivity),write(' * '),write(INCARD),write(' * '),write(INCARD2),
-                                                         DSCardinality is Selectivity * INCARD * INCARD2,
-                                                         DSCardinalities=[Alias=DSCardinality,Alias2=DSCardinality]
-
-                                                   ),!.
-
-compute_runtime_profile(Alias,DTF,[Alias=DSCardinality]):- DTF=..[dtf|[_,[],_,_]],!,
-                                                   ds_cardinality(Alias,INCARD),
-                                                   %nl,write('------ds_cardinality('),write(Alias),write(','),write(INCARD),write(')'),
-                                                   %nl,write('------DSCardinality is '),write(INCARD),
-                                                   DSCardinality is INCARD,!.
-
-compute_runtime_profile(Alias,DTF,[Alias=DSCardinality]):- DTF=..[dtf|[_,[Exp],_,_]],
-                                                   \+Exp=..[_,Alias::Path,_],
-                                                   \+Exp=..[_,_,Alias::Path],!,
-                                                   ds_cardinality(Alias,INCARD),
-                                                   %nl,write('------ds_cardinality('),write(Alias),write(','),write(INCARD),write(')'),
-                                                   %nl,write('------DSCardinality is '),write(INCARD),
-                                                   DSCardinality is INCARD,!.
+compute_runtime_profile(Alias,DTF):- DTF=..[dtf|[_,[Exp],_,_]],
+                                    \+Exp=..[_,Alias::Path,_],
+                                    \+Exp=..[_,_,Alias::Path],!.
+%                                    dataset(Alias,Dataset),
+%                                    ds_cardinality(Dataset,INCARD),
+%                                    DSCardinality is INCARD,!.
 
 
-update_runtime_profile(Alias, DSCardinality):- retractall(ds_cardinality(Alias,_)),
-                                               assertz(ds_cardinality(Alias,DSCardinality)).
+update_runtime_profile(Alias, DSCardinality):- dataset(Alias,DataSet),!,
+                                               retractall(ds_cardinality(DataSet,_)),
+                                               assertz(ds_cardinality(DataSet,DSCardinality)).
 
 compute_data_size(Aliases,DataSize):-
    findall(DatasetSize,(member(Alias,Aliases),
-                        ds_cardinality(Alias,INCARD),
+                        dataset(Alias,Dataset),
+                        ds_cardinality(Dataset,INCARD),
                         runtime_atts(Alias,Atts),
                         findall(AttSize,(member(Alias::Att,Atts),
-                                   att_size(Alias,Att,AttSize))
+                                         att_size(Alias,Att,AttSize))
                                ,AttsSizez),
                         sum_list(AttsSizez,TupleSize),
                         DatasetSize is INCARD*TupleSize
-                        ,nl,write('        '),write(Alias),write(' cardinality '),write(INCARD),write(' size '),write(DatasetSize)
+                        %,nl,write('          '),write(Alias),write('\tcardinality '),write(INCARD),write('\tsize '),write(DatasetSize)
                        )
           ,DatasetSizes),
-   sum_list(DatasetSizes,DSize),
-   DataSize is ceiling(DSize).
+   DatasetSizes\=[] -> sum_list(DatasetSizes,DSize), DataSize is ceiling(DSize)
+                     ; DataSize is 0.
 
 
 %att_selectivity(Alias,Attribute,Selectivity):-

@@ -8,6 +8,8 @@
 :-initialization(consult('activity_cost.pl')).
 :-initialization(consult('qw_utils.pl')).
 :-initialization(consult('runtime_profile.pl')).
+:-initialization(consult('runtime_qw_cost.pl')).
+:-initialization(consult('runtime_activity_cost.pl')).
 :-initialization(consult('simulate_execute_activity.pl')).
 
 :-initialization(consult('run_qw_cost.pl')).

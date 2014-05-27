@@ -1,5 +1,13 @@
 
 runtime_qw_cost(QW,Cost):-
+       build_runtime_apis,
+       build_runtime_profile,
+
+%+LOGICAL ANCESTORS
+       assert_activty_ansestors(QW),
+%-LOGICAL ANCESTORS
+
+%+PHYSICAL ANCESTORS
 	retractall(ancestors(_,_)),
 	retractall(successors(_,_)),
 	arg(1,QW,A),
@@ -7,8 +15,9 @@ runtime_qw_cost(QW,Cost):-
 			findall(Ancestor, (member(Ancestor, [in,out|A]),Ancestor\==Activity, prec_strict(Ancestor,Activity,QW)), Ancestors),
 			findall(Successor,(member(Successor,[in,out|A]),Successor\==Activity,prec_strict(Activity,Successor,QW)),Successors),
 			assertz(ancestors(Activity, Ancestors)),
-			assertz(successors(Activity,Successors))
-		),_),
+			assertz(successors(Activity,Successors)))
+		,_),
+%-PHYSICAL ANCESTORS
 	runtime_qw_cost(in,QW,Cost,1).
 
 runtime_qw_cost(out,_,cost(0,0,0),_):- !.
@@ -31,7 +40,7 @@ runtime_qw_cost(PAR,QW,Cost,N):- %sequential arc(Prev,out)
 	findall([arc(in,F),arc(L,out)|SubE],(   member(arc(PAR,F),E),
                                                  member(arc(L,ENDPAR),E),
                                                  paths(F,L,E,Paths),
-					         ((F=L,Paths=[]);(F\==L,Paths\==[])),
+					              ((F=L,Paths=[]);(F\==L,Paths\==[])),
                                                  unionAll(Paths,SubE)
 					      )
                 ,SubEs),
@@ -51,8 +60,10 @@ runtime_qw_cost(Activity,QW,Cost,N):- %sequential arc(Prev,Next), Prev != in , N
 	Arc=arc(Activity,Next),
 	memberchk(Arc,E),
 	difference(E,[Arc],NewE),
+       activity(Activity,DTF),
+       execute_activity(DTF),
+	activity_cost(Activity,CActivity),
 	runtime_qw_cost(Next,qw(A,P,V,NewE,in,out,_),Cost2,N),
-	runtime_activity_cost(Activity,CActivity),
 	aggseq(Cost2,CActivity,Cost)
 	.
 
