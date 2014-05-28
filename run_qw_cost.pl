@@ -2,6 +2,7 @@ init_qw_cost:-
        dtypes(TYPES),          %Retrieve the list of data types type_name(Alias,Service::Method) defining the aliases of service methods
        activities(ACTIVITIES), %Retrieve the list of activities and their corresponding DTF activity(idactivity,dtf)
        retractall(type_name(_,_)),
+       retractall(activity(_,_)),
        findall(_,( member(type_name(Alias,Service::Method), TYPES),
                   assertz(type_name(Alias,Service::Method)))
               ,_),

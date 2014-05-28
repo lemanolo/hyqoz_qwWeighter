@@ -60,9 +60,9 @@ runtime_qw_cost(Activity,QW,Cost,N):- %sequential arc(Prev,Next), Prev != in , N
 	Arc=arc(Activity,Next),
 	memberchk(Arc,E),
 	difference(E,[Arc],NewE),
-       activity(Activity,DTF),
-       execute_activity(DTF),
-	activity_cost(Activity,CActivity),
+%       activity(Activity,DTF),
+%       execute_activity(DTF),
+	runtime_activity_cost(Activity,CActivity),
 	runtime_qw_cost(Next,qw(A,P,V,NewE,in,out,_),Cost2,N),
 	aggseq(Cost2,CActivity,Cost)
 	.

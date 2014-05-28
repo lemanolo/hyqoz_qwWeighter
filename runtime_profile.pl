@@ -120,12 +120,13 @@ compute_runtime_profile(Alias,DTF):- DTF=..[dtf|[_,[Exp],_,_]],
                                      ),!,
                                      dataset(Alias,Dataset),
                                      ds_cardinality(Dataset,INCARD),
-                                     %nl,write('------ds_cardinality('),write(Alias),write(','),write(INCARD),write(')'),
+                                     nl,nl,write('           ------ds_cardinality('),write(Alias),write(','),write(INCARD),write(')'),
                                      (
                                         (  rexp(Exp,Alias) ->  att_selectivity(Alias,Path,Selectivity)
                                          ; fexp(Exp,Alias) ->  att_selectivity(Alias,Path,Selectivity)
                                         ),
                                           DSCardinality is INCARD * Selectivity,
+                                          nl,write('           ------'),write(DSCardinality),write(' is '),write(INCARD),write(' * '),write(Selectivity),nl,
                                           retract(ds_cardinality(Dataset,_)),
                                           assertz(ds_cardinality(Dataset,DSCardinality))
                                           %,DSCardinalities=[Alias=DSCardinality]
@@ -140,6 +141,7 @@ compute_runtime_profile(Alias,DTF):- DTF=..[dtf|[_,[Exp],_,_]],
                                            join_selectivity(Alias,Path,Alias2,Path2,Selectivity),
                                            %nl,write('------DSCardinality is '),write(Selectivity),write(' * '),write(INCARD),write(' * '),write(INCARD2),
                                            DSCardinality is Selectivity * INCARD * INCARD2,
+                                           nl,write('           ------'),write(DSCardinality),write(' is '),write(Selectivity),write(' * '),write(INCARD),write(' * '),write(INCARD2),nl,
                                            findall(DS,(dataset(Alias,DS);dataset(Alias2,DS)),AllDatasets),
                                            sort(AllDatasets),
                                            concat_all_atoms(AllDatasets,NewDataset),
@@ -154,17 +156,23 @@ compute_runtime_profile(Alias,DTF):- DTF=..[dtf|[_,[Exp],_,_]],
                                            %,DSCardinalities=[Alias=DSCardinality, Alias2=DSCardinality]
                                      ) ,!.
 
-compute_runtime_profile(_,DTF):- DTF=..[dtf|[_,[],_,_]],!.
-%                                    dataset(Alias,Dataset),
-%                                    ds_cardinality(Dataset,INCARD),
-%                                    DSCardinality is INCARD,!.
+compute_runtime_profile(_,DTF):- DTF=..[dtf|[_,[],_,_]],!,
+                                    dataset(Alias,Dataset),
+                                    ds_cardinality(Dataset,INCARD),
+                                    DSCardinality is INCARD,!
+                                    ,nl,nl,write('           ------ds_cardinality('),write(Alias),write(','),write(INCARD),write(')')
+                                    ,nl,write('           ------'),write(DSCardinality),write(' is '),write(INCARD),nl
+                                    .
 
 compute_runtime_profile(Alias,DTF):- DTF=..[dtf|[_,[Exp],_,_]],
                                     \+Exp=..[_,Alias::Path,_],
-                                    \+Exp=..[_,_,Alias::Path],!.
-%                                    dataset(Alias,Dataset),
-%                                    ds_cardinality(Dataset,INCARD),
-%                                    DSCardinality is INCARD,!.
+                                    \+Exp=..[_,_,Alias::Path],!,
+                                    dataset(Alias,Dataset),
+                                    ds_cardinality(Dataset,INCARD),
+                                    DSCardinality is INCARD,!
+                                    ,nl,nl,write('           ------ds_cardinality('),write(Alias),write(','),write(INCARD),write(')')
+                                    ,nl,write('           ------'),write(DSCardinality),write(' is '),write(INCARD),nl
+                                    .
 
 
 update_runtime_profile(Alias, DSCardinality):- dataset(Alias,DataSet),!,
@@ -181,7 +189,7 @@ compute_data_size(Aliases,DataSize):-
                                ,AttsSizez),
                         sum_list(AttsSizez,TupleSize),
                         DatasetSize is INCARD*TupleSize
-                        %,nl,write('          '),write(Alias),write('\tcardinality '),write(INCARD),write('\tsize '),write(DatasetSize)
+                        ,nl,write('          '),write(Alias),write('\tcardinality '),write(INCARD),write('\tsize '),write(DatasetSize)
                        )
           ,DatasetSizes),
    DatasetSizes\=[] -> sum_list(DatasetSizes,DSize), DataSize is ceiling(DSize)
@@ -210,11 +218,11 @@ join_selectivity(Alias1,Attribute1,Alias2,Attribute2,Selectivity):-
        %nl,write('------Selectivity is '),write('1/'),write(MaxCardinality),
        Selectivity is 1/MaxCardinality.
 
-dscard_tiny(5000).
-dscard_small(40000).
-dscard_medium(100000).
-dscard_large(150000).
-dscard_huge(300000).
+dscard_tiny(500).
+dscard_small(4000).
+dscard_medium(10000).
+dscard_large(15000).
+dscard_huge(30000).
 
 initial_cardinality(op1_op1::op1_op1,DSCardinality):-dscard_medium(DSCardinality).
 initial_cardinality(op2_op2::op2_op2,DSCardinality):-dscard_large(DSCardinality).
@@ -238,11 +246,11 @@ initial_cardinality(op19_op19::op19_op19,DSCardinality):-dscard_small(DSCardinal
 initial_cardinality(op20_op20::op20_op20,DSCardinality):-dscard_medium(DSCardinality).
 initial_cardinality(op21_op21::op21_op21,DSCardinality):-dscard_large(DSCardinality).
 
-attcard_tiny(1).
-attcard_small(10).
+attcard_tiny(5).
+attcard_small(25).
 attcard_medium(100).
-attcard_large(150).
-attcard_huge(200).
+attcard_large(200).
+attcard_huge(300).
 
 initial_cardinality(op1_op1::op1_op1,op1_op1_i_a,AttCardinality):- attcard_tiny(AttCardinality).
 initial_cardinality(op1_op1::op1_op1,op1_op1_o_a,AttCardinality):- attcard_small(AttCardinality).
@@ -601,11 +609,11 @@ initial_cardinality(op21_op21::op21_op21,op21_op21_o_m,AttCardinality):- attcard
 initial_cardinality(op21_op21::op21_op21,op21_op21_o_o,AttCardinality):- attcard_huge(AttCardinality).
 initial_cardinality(op21_op21::op21_op21,op21_op21_o_q,AttCardinality):- attcard_tiny(AttCardinality).
 
-attsize_tiny(1).
-attsize_small(10).
-attsize_medium(100).
-attsize_large(150).
-attsize_huge(200).
+attsize_tiny(2).
+attsize_small(8).
+attsize_medium(32).
+attsize_large(64).
+attsize_huge(128).
 
 initial_att_size(op1_op1::op1_op1,op1_op1_i_a,AttSize):-attsize_tiny(AttSize).
 initial_att_size(op1_op1::op1_op1,op1_op1_o_a,AttSize):-attsize_small(AttSize).

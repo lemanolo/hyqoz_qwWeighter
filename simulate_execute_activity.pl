@@ -72,9 +72,9 @@ execute_activity(DTF):-
               ,AllAncestorDelivery),
        unionAll(AllAncestorDelivery,ActivityINPUT),
 
-       nl,write('      ACTIVITY: '),write(IDActivity),
-       compute_data_size(ActivityINPUT,InputDataSize),
-       nl,write('\t\tINCOMING DATA: '),write(ActivityINPUT),write('\t\t InputDataSize: '),write(InputDataSize),
+%       nl,write('      ACTIVITY: '),write(IDActivity),
+%       compute_data_size(ActivityINPUT,InputDataSize),
+%       nl,write('\t\tINCOMING DATA: '),write(ActivityINPUT),write('\t\t InputDataSize: '),write(InputDataSize),
 
        findall(_,(member(Alias,A),
                                 compute_runtime_api(Alias,DTF,RTAPI),
@@ -82,15 +82,10 @@ execute_activity(DTF):-
                                 compute_runtime_profile(Alias,DTF))
                ,_),
 
-%       unionAll(AllDSCardinalities,UnionAllDSCardinalities),
-%       findall(_, ( member(Alias=DSCardinality,UnionAllDSCardinalities)
-%                  %,update_runtime_profile(Alias, DSCardinality)
-%                  )
-%               ,_),
 
        unionAll([A,ActivityINPUT],ActivityOUTPUT),
-       compute_data_size(ActivityOUTPUT,OutputDataSize),
-       nl,write('\t\tOUTGOING DATA: '),write(ActivityOUTPUT),write('\t\t OutputDataSize: '),write(OutputDataSize),nl,
+%       compute_data_size(ActivityOUTPUT,OutputDataSize),
+%       nl,write('\t\tOUTGOING DATA: '),write(ActivityOUTPUT),write('\t\t OutputDataSize: '),write(OutputDataSize),nl,
        retractall(activity_deliver(IDActivity,_)),
        assertz(activity_deliver(IDActivity,ActivityOUTPUT)).
 
